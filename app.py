@@ -191,8 +191,11 @@ if st.button("🔥 Render Video Visualizer Sekarang", type="primary"):
 
                 logo_img = None
                 if uploaded_logo:
-                    logo_img = Image.open(uploaded_logo).convert("RGBA")
-                    logo_img.thumbnail((220, 220), Image.Resampling.LANCZOS)
+                    try:
+                        logo_img = Image.open(uploaded_logo).convert("RGBA")
+                        logo_img.thumbnail((220, 220), Image.Resampling.LANCZOS)
+                    except Exception:
+                        logo_img = None
 
                 # 5. Fungsi Generator Frame Video
                 def make_frame(t):
@@ -257,4 +260,38 @@ if st.button("🔥 Render Video Visualizer Sekarang", type="primary"):
                         new_lw, new_lh = int(lw * pulse_scale), int(lh * pulse_scale)
                         
                         pulsed_logo = logo_img.resize((new_lw, new_lh), Image.Resampling.LANCZOS)
-                        logo_
+                        logo_x = (bg_w - new_lw) // 2
+                        logo_y = (bg_h - new_lh) // 2 - 20
+                        
+                        canvas.paste(pulsed_logo, (logo_x, logo_y), pulsed_logo)
+
+                    return np.array(canvas)
+
+                # 6. Render dan Buat File Video MP4
+                video_clip = VideoClip(make_frame, duration=duration)
+                video_clip = video_clip.set_audio(audio_clip)
+
+                output_path = "output_visualizer.mp4"
+                video_clip.write_videofile(
+                    output_path,
+                    fps=fps,
+                    codec="libx264",
+                    audio_codec="aac",
+                    preset="ultrafast",
+                    logger=None
+                )
+
+                st.success("🎉 Render Selesai!")
+                st.video(output_path)
+
+                # Tombol Download Video
+                with open(output_path, "rb") as file:
+                    st.download_button(
+                        label="📥 Download Hasil Video MP4",
+                        data=file,
+                        file_name="Visualizer_Preview.mp4" if "3 Detik" in mode_render else f"{judul_terpilih}_Visualizer.mp4",
+                        mime="video/mp4"
+                    )
+
+            except Exception as e:
+                st.error(f"Gagal merender video: {e}")
