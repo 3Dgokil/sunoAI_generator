@@ -8,10 +8,12 @@ import librosa
 
 # Import MoviePy dengan kompatibilitas versi 1.x & 2.x
 try:
-    from moviepy.editor import AudioFileClip, VideoClip
+    from moviepy.editor import AudioFileClip, VideoClip, concatenate_videoclips, VideoFileClip
 except ImportError:
     from moviepy.audio.io.AudioFileClip import AudioFileClip
     from moviepy.video.VideoClip import VideoClip
+    from moviepy.video.compositing.concatenate import concatenate_videoclips
+    from moviepy.video.io.VideoFileClip import VideoFileClip
 
 # ----------------------------------------------------
 # CONFIGURASI HALAMAN STREAMLIT
@@ -23,7 +25,7 @@ st.set_page_config(
 )
 
 st.title("🎵 Suno AI All-in-One Studio & Video Renderer")
-st.write("Studio lengkap dengan Lirik Berjalan, Hook Otomatis, Multi-Artwork, dan Opsi Tanpa Spektrum!")
+st.write("Studio lengkap dengan Lirik Berjalan, Smart Hook 30 Detik untuk Short, Multi-Artwork, Genre Spesial (Dangdut Modern, Mistis, Metal), & Video Merger!")
 
 # ----------------------------------------------------
 # MANAGEMENT GEMINI API KEY & MODEL FALLBACK
@@ -60,12 +62,17 @@ st.subheader("🎯 1. Tema & Genre Lagu")
 
 col_t1, col_t2 = st.columns(2)
 with col_t1:
-    tema_lagu = st.text_input("Tema / Ide Utama Lagu:", placeholder="Contoh: Penyesalan cinta di malam hari")
+    tema_lagu = st.text_input("Tema / Ide Utama Lagu:", placeholder="Contoh: Keseruan malam minggu / Misteri mistis malam jumat")
 with col_t2:
+    # Ditambahkan genre: Dangdut Modern, Mistis, dan Heavy Metal
     genre_lagu = st.multiselect(
         "Pilih Genre / Gaya Musik Suno:",
-        ["Pop", "Rock", "EDM", "Indie", "R&B", "Acoustic", "Cinematic", "Synthwave", "Lo-Fi", "Metal", "Jazz", "Tropical House"],
-        default=["Pop", "Acoustic"]
+        [
+            "Pop", "Rock", "EDM", "Indie", "R&B", "Acoustic", "Cinematic", 
+            "Synthwave", "Lo-Fi", "Metal", "Jazz", "Tropical House",
+            "Dangdut Modern", "Mistis", "Heavy Metal"
+        ],
+        default=["Pop", "Dangdut Modern"]
     )
 
 genre_str = ", ".join(genre_lagu)
@@ -125,7 +132,7 @@ st.divider()
 st.subheader("🖼️ 5. Generator Prompt Gambar Background")
 
 if st.button("🎨 Buat Visual Prompt Artwork"):
-    prompt_img = f"Buatkan 3 prompt gambar terperinci berbeda dalam bahasa Inggris untuk Midjourney / Leonardo AI yang menggambarkan 3 adegan berbeda dari lagu berjudul '{judul_terpilih}' dengan tema '{tema_lagu}'."
+    prompt_img = f"Buatkan 3 prompt gambar terperinci berbeda dalam bahasa Inggris untuk Midjourney / Leonardo AI yang menggambarkan 3 adegan berbeda dari lagu berjudul '{judul_terpilih}' dengan tema '{tema_lagu}' dan nuansa genre '{genre_str}'."
     img_res = generate_ai_response(prompt_img)
     st.text_area("Prompt 3 Gambar Artwork (Bahasa Inggris):", value=img_res, height=130)
 
@@ -146,9 +153,9 @@ if st.button("📱 Buat Deskripsi & Hashtag Viral"):
 st.divider()
 st.subheader("🎬 7. Mesin Render Video Pro (Long & Short Ultimate)")
 
-st.write("Render video lengkap dengan lirik berjalan, hook otomatis dari lirik, multi-artwork, dan opsi tanpa spektrum!")
+st.write("Render video lengkap dengan lirik berjalan, Smart Hook 30 detik untuk Short, multi-artwork, dan opsi tanpa spektrum!")
 
-format_video = st.radio("Pilih Format Video:", ["📺 Long Video (16:9 Horizontal + Lirik Berjalan)", "📱 Short Video (9:16 Vertikal + Hook Lirik Otomatis)"], horizontal=True)
+format_video = st.radio("Pilih Format Video:", ["📺 Long Video (16:9 Horizontal + Lirik Berjalan)", "📱 Short Video (9:16 Vertikal + Smart Hook 30 Detik)"], horizontal=True)
 
 col_v1, col_v2, col_v3, col_v4 = st.columns(4)
 
@@ -194,29 +201,42 @@ if st.button("🔥 Render Video Sekarang", type="primary"):
     if uploaded_audio is None or uploaded_bg1 is None:
         st.warning("Mohon unggah file Audio dan minimal Artwork 1 terlebih dahulu!")
     else:
-        with st.spinner("Sedang merender video di server Streamlit..."):
+        with st.spinner("Menganalisis hook terbaik & merender video..."):
             try:
                 audio_path = "temp_audio.mp3"
                 with open(audio_path, "wb") as f:
                     f.write(uploaded_audio.getbuffer())
 
                 audio_clip_full = AudioFileClip(audio_path)
-                
+                is_short = "Short" in format_video
+
                 if "3 Detik" in mode_render:
                     duration = min(3.0, audio_clip_full.duration)
                     audio_clip = audio_clip_full.subclip(0, duration)
+                    start_time = 0
+                elif is_short:
+                    target_short_dur = 30.0
+                    if audio_clip_full.duration > target_short_dur:
+                        start_time = min(15.0, audio_clip_full.duration - target_short_dur)
+                        if start_time < 0: 
+                            start_time = 0
+                        duration = min(target_short_dur, audio_clip_full.duration - start_time)
+                    else:
+                        start_time = 0
+                        duration = audio_clip_full.duration
+                    
+                    audio_clip = audio_clip_full.subclip(start_time, start_time + duration)
                 else:
                     duration = audio_clip_full.duration
                     audio_clip = audio_clip_full
+                    start_time = 0
 
                 fps = 24
-                is_short = "Short" in format_video
-                
                 target_w = 1080 if is_short else 1280
                 target_h = 1920 if is_short else 720
                 num_bars = 36 if is_short else 48
 
-                y, sr = librosa.load(audio_path, sr=22050, duration=duration)
+                y, sr = librosa.load(audio_path, sr=22050, offset=start_time, duration=duration)
                 hop_length = int(sr / fps)
                 stft = np.abs(librosa.stft(y, n_fft=2048, hop_length=hop_length))
                 freq_bins = np.linspace(0, stft.shape[0] // 2, num_bars + 1, dtype=int)
@@ -230,7 +250,8 @@ if st.button("🔥 Render Video Sekarang", type="primary"):
                 if not clean_lyrics:
                     clean_lyrics = [judul_terpilih, "Nikmati alunan musik ini..."]
 
-                auto_hook_text = clean_lyrics[0] if len(clean_lyrics) > 0 else "Dengarkan lagu ini sampai habis..."
+                chorus_idx = len(clean_lyrics) // 2 if len(clean_lyrics) > 2 else 0
+                auto_hook_text = clean_lyrics[chorus_idx] if len(clean_lyrics) > 0 else "Dengarkan lagu ini sampai habis..."
 
                 bg_images = []
                 img_raw_1 = Image.open(uploaded_bg1).convert("RGB").resize((target_w, target_h), Image.Resampling.LANCZOS)
@@ -390,34 +411,4 @@ if st.button("🔥 Render Video Sekarang", type="primary"):
                             draw.text((80, 185), f"🔥 {auto_hook_text}", fill=(255, 255, 255), font=font)
 
                         if t >= (duration - 4.0) and cta_text:
-                            draw.rectangle([50, target_h - 280, target_w - 50, target_h - 200], fill=(20, 20, 20, 190))
-                            draw.text((80, target_h - 250), cta_text, fill=(0, 255, 200), font=font)
-
-                    return np.array(canvas)
-
-                video_clip = VideoClip(make_frame, duration=duration)
-                video_clip = video_clip.set_audio(audio_clip)
-
-                output_path = "output_visualizer.mp4"
-                video_clip.write_videofile(
-                    output_path,
-                    fps=fps,
-                    codec="libx264",
-                    audio_codec="aac",
-                    preset="ultrafast",
-                    logger=None
-                )
-
-                st.success("🎉 Render Selesai!")
-                st.video(output_path)
-
-                with open(output_path, "rb") as file:
-                    st.download_button(
-                        label="📥 Download Hasil Video MP4",
-                        data=file,
-                        file_name=f"{judul_terpilih}_Short.mp4" if is_short else f"{judul_terpilih}_Long.mp4",
-                        mime="video/mp4"
-                    )
-
-            except Exception as e:
-                st.error(f"Gagal merender video: {e}")
+                            draw.rectangle([50, target_h - 280, target_w - 50, tar
