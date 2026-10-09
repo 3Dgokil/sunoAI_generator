@@ -64,7 +64,6 @@ col_t1, col_t2 = st.columns(2)
 with col_t1:
     tema_lagu = st.text_input("Tema / Ide Utama Lagu:", placeholder="Contoh: Keseruan malam minggu / Misteri mistis malam jumat")
 with col_t2:
-    # Ditambahkan genre: Dangdut Modern, Mistis, dan Heavy Metal
     genre_lagu = st.multiselect(
         "Pilih Genre / Gaya Musik Suno:",
         [
@@ -411,4 +410,5 @@ if st.button("🔥 Render Video Sekarang", type="primary"):
                             draw.text((80, 185), f"🔥 {auto_hook_text}", fill=(255, 255, 255), font=font)
 
                         if t >= (duration - 4.0) and cta_text:
-                            draw.rectangle([50, target_h - 280, target_w - 50, tar
+                            draw.rectangle([50, target_h - 280, target_w - 50, target_h - 200], fill=(20, 20, 20, 190))
+                           
