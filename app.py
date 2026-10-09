@@ -395,7 +395,7 @@ if st.button("🔥 Render Video Sekarang", type="primary"):
 
                     try:
                         font = ImageFont.load_default()
-                    except:
+                    except Exception:
                         font = None
 
                     if not is_short:
@@ -412,4 +412,91 @@ if st.button("🔥 Render Video Sekarang", type="primary"):
 
                         if t >= (duration - 4.0) and cta_text:
                             draw.rectangle([50, target_h - 280, target_w - 50, target_h - 200], fill=(20, 20, 20, 190))
-       
+                            draw.text((80, target_h - 250), cta_text, fill=(0, 255, 200), font=font)
+
+                    return np.array(canvas)
+
+                video_clip = VideoClip(make_frame, duration=duration)
+                video_clip = video_clip.set_audio(audio_clip)
+
+                output_path = "output_visualizer.mp4"
+                video_clip.write_videofile(
+                    output_path,
+                    fps=fps,
+                    codec="libx264",
+                    audio_codec="aac",
+                    preset="ultrafast",
+                    logger=None
+                )
+
+                st.success("🎉 Render Selesai!")
+                st.video(output_path)
+
+                with open(output_path, "rb") as file:
+                    st.download_button(
+                        label="📥 Download Hasil Video MP4",
+                        data=file,
+                        file_name=f"{judul_terpilih}_Short_30s.mp4" if is_short else f"{judul_terpilih}_Long.mp4",
+                        mime="video/mp4"
+                    )
+
+            except Exception as e:
+                st.error(f"Gagal merender video: {e}")
+
+# ----------------------------------------------------
+# 8. FITUR TAMBAHAN: VIDEO MERGER (GABUNG BEBERAPA VIDEO JADI SATU)
+# ----------------------------------------------------
+st.divider()
+st.subheader("🔗 8. Video Merger (Gabung Banyak Video Musik)")
+st.write("Unggah beberapa file video MP4 hasil render untuk digabungkan berurutan menjadi satu video kompilasi penuh!")
+
+uploaded_videos = st.file_uploader("Upload File-file Video MP4 untuk Digabung:", type=["mp4"], accept_multiple_files=True)
+
+if st.button("🚀 Gabungkan Video Sekarang", type="primary"):
+    if not uploaded_videos or len(uploaded_videos) < 2:
+        st.warning("Mohon unggah minimal 2 file video MP4 untuk digabungkan!")
+    else:
+        with st.spinner("Sedang menggabungkan video..."):
+            try:
+                temp_video_paths = []
+                clips_to_concat = []
+
+                for i, vid_file in enumerate(uploaded_videos):
+                    t_path = f"temp_merge_{i}.mp4"
+                    with open(t_path, "wb") as f:
+                        f.write(vid_file.getbuffer())
+                    temp_video_paths.append(t_path)
+                    clips_to_concat.append(VideoFileClip(t_path))
+
+                final_merged_clip = concatenate_videoclips(clips_to_concat)
+                merged_output_path = "output_merged_kompilasi.mp4"
+                
+                final_merged_clip.write_videofile(
+                    merged_output_path,
+                    codec="libx264",
+                    audio_codec="aac",
+                    preset="ultrafast",
+                    logger=None
+                )
+
+                for c in clips_to_concat:
+                    c.close()
+                final_merged_clip.close()
+
+                st.success("🎉 Penggabungan Video Selesai!")
+                st.video(merged_output_path)
+
+                with open(merged_output_path, "rb") as file_m:
+                    st.download_button(
+                        label="📥 Download Video Kompilasi Gabungan",
+                        data=file_m,
+                        file_name="Kompilasi_Full_Album.mp4",
+                        mime="video/mp4"
+                    )
+
+                for t_path in temp_video_paths:
+                    if os.path.exists(t_path):
+                        os.remove(t_path)
+
+            except Exception as e:
+                st.error(f"Gagal menggabungkan video: {e}")
