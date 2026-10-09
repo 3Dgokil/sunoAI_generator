@@ -271,7 +271,6 @@ if st.button("🔥 Render Video Sekarang", type="primary"):
 
                 primary_color, secondary_color, accent_color = get_theme_colors(color_theme)
 
-                # Definisi frame generator di luar fungsi tombol agar indentasi bersih
                 def make_frame(t):
                     frame_idx = min(int(t * fps), stft.shape[1] - 1)
                     progress = t / duration
@@ -421,4 +420,4 @@ if st.button("🔥 Render Video Sekarang", type="primary"):
                     )
 
             except Exception as e:
-                st.error(f"Gagal meren
+                st.error(f"Gagal merender video: {e}")
