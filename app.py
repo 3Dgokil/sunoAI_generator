@@ -7,20 +7,46 @@ st.title("🎵 Suno AI Song, Visual & SEO Architect")
 st.caption("Platform Produksi Lagu, Lirik High-Retention, Prompt Suno, Artwork Sinematik, & SEO Optimizer")
 
 # ----------------------------------------------------
-# CONFIGURATION & API KEY
+# CONFIGURATION & API KEY WITH AUTOMATIC MODEL FALLBACK
 # ----------------------------------------------------
-try:
-    api_key = st.secrets["GEMINI_API_KEY"]
-    genai.configure(api_key=api_key)
-    
-    # Inisialisasi model dengan fallback otomatis untuk mencegah error 404
+@st.cache_resource
+def get_working_model():
+    """Mencari model Gemini yang valid dan aktif dari akun API key"""
     try:
-        model = genai.GenerativeModel('gemini-2.5-flash')
-    except Exception:
-        model = genai.GenerativeModel('gemini-1.5-flash-latest')
+        api_key = st.secrets["GEMINI_API_KEY"]
+        genai.configure(api_key=api_key)
+        
+        # Daftar prioritas model yang akan dicoba secara berurutan
+        preferred_models = [
+            'gemini-1.5-flash',
+            'gemini-2.0-flash',
+            'gemini-1.5-flash-latest',
+            'gemini-1.5-pro',
+            'gemini-1.0-pro'
+        ]
+        
+        # Cek daftar model yang benar-benar didukung oleh API Key kamu
+        available_models = [m.name.replace('models/', '') for m in genai.list_models() if 'generateContent' in m.supported_generation_methods]
+        
+        # Pilih model pertama yang cocok
+        for target in preferred_models:
+            if target in available_models:
+                return genai.GenerativeModel(target)
+                
+        # Jika tidak ada yang cocok di daftar preferred, pilih model pertama dari yang tersedia
+        if available_models:
+            return genai.GenerativeModel(available_models[0])
+            
+        return genai.GenerativeModel('gemini-1.5-flash')
+    except Exception as e:
+        st.error(f"⚠️ Gagal menghubungkan Gemini API Key: {e}")
+        return None
 
-except Exception as e:
-    st.error("⚠️ Gemini API Key belum terpasang di Streamlit Secrets!")
+model = get_working_model()
+
+if not model:
+    st.error("⚠️ Pastikan `GEMINI_API_KEY` sudah dikonfigurasi dengan benar di Streamlit Secrets!")
+    st.stop()
 
 # ----------------------------------------------------
 # 1. TEMA & SUB-TEMA (DINAMIS)
@@ -67,8 +93,11 @@ if st.button("🔍 Cari Ide Judul Unik"):
         Sub-Tema: {sub_tema_final}
         Output HANYA berupa daftar 5 judul tanpa angka atau kalimat pengantar, dipisahkan koma.
         """
-        res = model.generate_content(prompt_judul)
-        st.session_state.daftar_judul = [j.strip() for j in res.text.split(",") if j.strip()]
+        try:
+            res = model.generate_content(prompt_judul)
+            st.session_state.daftar_judul = [j.strip() for j in res.text.split(",") if j.strip()]
+        except Exception as e:
+            st.error(f"Error saat membuat judul: {e}")
 
 if st.session_state.daftar_judul:
     judul_terpilih = st.radio("Pilih Judul yang Kamu Sukai:", st.session_state.daftar_judul)
@@ -121,10 +150,12 @@ if st.button("🔥 Buat Lirik & Style Suno (High Retention Hook)", type="primary
                - **Chorus / Reff**: Wajib memiliki rima yang kuat, kata-kata yang mudah dihafal (earworm), dan emosi puncak yang membuat orang ingin memutar ulang lagu (replay value).
                - Berikan petunjuk eksekusi vokal di dalam kurung siku, misal: [Aggressive Scream], [Soft Whispering], [Fast Kendang Beat].
             """
-            
-            response = model.generate_content(prompt_lirik)
-            st.session_state.last_lirik_result = response.text
-            st.success("Lirik & Style Berhasil Dibuat!")
+            try:
+                response = model.generate_content(prompt_lirik)
+                st.session_state.last_lirik_result = response.text
+                st.success("Lirik & Style Berhasil Dibuat!")
+            except Exception as e:
+                st.error(f"Error saat membuat lirik: {e}")
 
 if 'last_lirik_result' in st.session_state:
     st.markdown(st.session_state.last_lirik_result)
@@ -186,10 +217,12 @@ if st.button("🖼️ Generate Prompt Artwork Visual"):
 
             Berikan penjelasan singkat Bahasa Indonesia untuk tiap konsep, diikuti Prompt Bahasa Inggris yang tebal (bold).
             """
-            
-            res_art = model.generate_content(prompt_art)
-            st.session_state.last_art_result = res_art.text
-            st.success("Prompt Artwork Visual Siap Digunakan!")
+            try:
+                res_art = model.generate_content(prompt_art)
+                st.session_state.last_art_result = res_art.text
+                st.success("Prompt Artwork Visual Siap Digunakan!")
+            except Exception as e:
+                st.error(f"Error saat membuat prompt visual: {e}")
 
 if 'last_art_result' in st.session_state:
     st.markdown(st.session_state.last_art_result)
@@ -233,6 +266,12 @@ if st.button("🚀 Optimasi SEO untuk Release Lagu", type="primary"):
         ### 4. YouTube Video Tags (Koma-separated)
         - Sediakan 15-20 kata kunci pencarian yang dipisahkan koma agar mudah langsung di-copy-paste ke kolom Tags di YouTube Studio.
         """
-        
-        res_seo = model.generate_content(prompt_seo)
-        st.session_
+        try:
+            res_seo = model.generate_content(prompt_seo)
+            st.session_state.last_seo_result = res_seo.text
+            st.success("Paket SEO Berhasil Dibuat!")
+        except Exception as e:
+            st.error(f"Error saat membuat SEO: {e}")
+
+if 'last_seo_result' in st.session_state:
+    st.markdown(st.session_state.last_seo_result)
