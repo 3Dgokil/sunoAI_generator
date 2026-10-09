@@ -3,7 +3,7 @@ import google.generativeai as genai
 import os
 import numpy as np
 import math
-from PIL import Image, ImageDraw
+from PIL import Image, ImageDraw, ImageFont
 import librosa
 
 # Import MoviePy dengan kompatibilitas versi 1.x & 2.x
@@ -23,7 +23,7 @@ st.set_page_config(
 )
 
 st.title("🎵 Suno AI All-in-One Studio & Video Renderer")
-st.write("Aplikasi lengkap untuk membuat Lirik, Prompt Visual, SEO, dan Render Video Visualizer Sinematik!")
+st.write("Aplikasi lengkap untuk membuat Lirik, Prompt Visual, SEO, dan Render Video Visualizer Long & Short (Multi-Artwork + Hook & CTA)!")
 
 # ----------------------------------------------------
 # MANAGEMENT GEMINI API KEY & MODEL FALLBACK
@@ -37,10 +37,6 @@ else:
     st.sidebar.warning("Masukkan Gemini API Key untuk menggunakan fitur AI.")
 
 def generate_ai_response(prompt_text):
-    """
-    Menggunakan model Gemini aktif dengan mekanisme fallback otomatis
-    untuk menghindari 404 NotFound Error.
-    """
     models_to_try = [
         "gemini-1.5-flash",
         "gemini-1.5-pro",
@@ -123,9 +119,9 @@ st.divider()
 st.subheader("🖼️ 5. Generator Prompt Gambar Background")
 
 if st.button("🎨 Buat Visual Prompt Artwork"):
-    prompt_img = f"Buatkan 1 prompt gambar terperinci dalam bahasa Inggris untuk Midjourney / Leonardo AI yang menggambarkan artwork sampul album lagu berjudul '{judul_terpilih}' dengan tema '{tema_lagu}'. Sertakan detail style sinematik, lighting, 8k resolution, tanpa teks."
+    prompt_img = f"Buatkan 3 prompt gambar terperinci berbeda dalam bahasa Inggris untuk Midjourney / Leonardo AI yang menggambarkan 3 adegan berbeda dari lagu berjudul '{judul_terpilih}' dengan tema '{tema_lagu}'."
     img_res = generate_ai_response(prompt_img)
-    st.text_area("Prompt Gambar Artwork (Bahasa Inggris):", value=img_res, height=100)
+    st.text_area("Prompt 3 Gambar Artwork (Bahasa Inggris):", value=img_res, height=130)
 
 # ----------------------------------------------------
 # 6. SEO OPTIMIZER (DESKRIPSI & HASHTAG YOUTUBE/TIKTOK)
@@ -139,23 +135,37 @@ if st.button("📱 Buat Deskripsi & Hashtag Viral"):
     st.write(seo_res)
 
 # ----------------------------------------------------
-# 7. MESIN RENDER VIDEO ADVANCED (CUSTOM SPECTRUM & COLOR)
+# 7. MESIN RENDER VIDEO PRO (LONG & SHORT DENGAN HOOK, CTA & 3 ARTWORK)
 # ----------------------------------------------------
 st.divider()
-st.subheader("🎬 7. Mesin Render Video Pro (Custom Visualizer & Warna)")
+st.subheader("🎬 7. Mesin Render Video Pro (Long 16:9 & Short 9:16)")
 
-st.write("Buat video visualizer musik sinematik dengan spektrum audio otomatis untuk format video long (16:9), kustomisasi warna, dan logo dinamis!")
+st.write("Pilih format video, unggah audio, kustomisasi warna, dan gunakan hingga 3 artwork berbeda agar visual dinamis!")
 
-col_v1, col_v2, col_v3 = st.columns(3)
+format_video = st.radio("Pilih Format Video:", ["📺 Long Video (16:9 Horizontal)", "📱 Short Video (9:16 Vertikal + Hook & CTA)"], horizontal=True)
+
+col_v1, col_v2, col_v3, col_v4 = st.columns(4)
 
 with col_v1:
-    uploaded_audio = st.file_uploader("1. Upload Audio (.mp3 / .wav):", type=["mp3", "wav"])
+    uploaded_audio = st.file_uploader("1. Upload Audio (.mp3/.wav):", type=["mp3", "wav"])
 
 with col_v2:
-    uploaded_bg = st.file_uploader("2. Upload Background Artwork (.jpg / .png):", type=["jpg", "jpeg", "png"])
+    uploaded_bg1 = st.file_uploader("2. Artwork Utama / 1:", type=["jpg", "jpeg", "png"])
 
 with col_v3:
-    uploaded_logo = st.file_uploader("3. Upload Logo PNG Transparan (Opsional):", type=["png"])
+    # Jika Short, sediakan slot 3 artwork
+    if "Short" in format_video:
+        uploaded_bg2 = st.file_uploader("3. Artwork 2 (Opsional):", type=["jpg", "jpeg", "png"])
+    else:
+        uploaded_bg2 = None
+
+with col_v4:
+    if "Short" in format_video:
+        uploaded_bg3 = st.file_uploader("4. Artwork 3 (Opsional):", type=["jpg", "jpeg", "png"])
+    else:
+        uploaded_bg3 = None
+
+uploaded_logo = st.file_uploader("Upload Logo PNG Transparan (Opsional):", type=["png"])
 
 col_opt1, col_opt2, col_opt3 = st.columns(3)
 with col_opt1:
@@ -169,22 +179,32 @@ with col_opt2:
         ["Neon Cyan", "Sunset Red", "Electric Purple", "Cyber Green", "Gold Sunset"]
     )
 with col_opt3:
-    mode_render = st.radio("Pilih Mode Render:", ["🧪 Test Preview (3 Detik Cepat)", "🎬 Render Full Video Lagu"], horizontal=True)
+    mode_render = st.radio("Pilih Mode Render:", ["🧪 Test Preview (3 Detik Cepat)", "🎬 Render Full Video"], horizontal=True)
 
-if st.button("🔥 Render Video Visualizer Sekarang", type="primary"):
-    if uploaded_audio is None or uploaded_bg is None:
-        st.warning("Mohon unggah file Audio dan Background Artwork terlebih dahulu!")
+# Field tambahan khusus Short untuk Hook & CTA
+hook_text = ""
+cta_text = ""
+if "Short" in format_video:
+    st.info("💡 Atur Hook & CTA agar video Short kamu ber-retensi tinggi!")
+    col_h1, col_h2 = st.columns(2)
+    with col_h1:
+        hook_text = st.text_input("Teks Hook (Muncul di Awal Video):", value="Lagu ini bakal bikin kamu flashback... 🥺")
+    with col_h2:
+        cta_text = st.text_input("Teks CTA (Muncul di Akhir Video):", value="Dengerin sampai habis & Follow ya! 🎵")
+
+if st.button("🔥 Render Video Sekarang", type="primary"):
+    if uploaded_audio is None or uploaded_bg1 is None:
+        st.warning("Mohon unggah file Audio dan minimal Artwork 1 terlebih dahulu!")
     else:
-        with st.spinner("Sedang merender video visualizer di server Streamlit..."):
+        with st.spinner("Sedang merender video di server Streamlit..."):
             try:
-                # 1. Simpan File Audio Sementara
                 audio_path = "temp_audio.mp3"
                 with open(audio_path, "wb") as f:
                     f.write(uploaded_audio.getbuffer())
 
-                # 2. Tentukan Durasi berdasarkan Opsi Test / Full
                 audio_clip_full = AudioFileClip(audio_path)
                 
+                # Batasi durasi jika test preview, jika Short video batasi idealnya maks 30-60 detik jika full, atau ikut audio
                 if "3 Detik" in mode_render:
                     duration = min(3.0, audio_clip_full.duration)
                     audio_clip = audio_clip_full.subclip(0, duration)
@@ -193,29 +213,43 @@ if st.button("🔥 Render Video Visualizer Sekarang", type="primary"):
                     audio_clip = audio_clip_full
 
                 fps = 24
-
-                # OLEH KARENA VIDEO BERSKALA LONG (16:9 / 1280x720), HITUNG JUMLAH BAR OTOMATIS
-                num_bars = 48  # Jumlah bar optimal untuk skala video long 1280px
+                is_short = "Short" in format_video
                 
-                # 3. Analisis Frekuensi Audio dengan Librosa
+                # Resolusi Target
+                target_w = 1080 if is_short else 1280
+                target_h = 1920 if is_short else 720
+                num_bars = 36 if is_short else 48
+
                 y, sr = librosa.load(audio_path, sr=22050, duration=duration)
                 hop_length = int(sr / fps)
                 stft = np.abs(librosa.stft(y, n_fft=2048, hop_length=hop_length))
                 freq_bins = np.linspace(0, stft.shape[0] // 2, num_bars + 1, dtype=int)
 
-                # 4. Prepare Background & Logo
-                bg_img = Image.open(uploaded_bg).convert("RGB").resize((1280, 720), Image.Resampling.LANCZOS)
-                bg_w, bg_h = bg_img.size
+                # Load Backgrounds (Multi-artwork support)
+                bg_images = []
+                img_raw_1 = Image.open(uploaded_bg1).convert("RGB").resize((target_w, target_h), Image.Resampling.LANCZOS)
+                bg_images.append(img_raw_1)
+
+                if uploaded_bg2:
+                    img_raw_2 = Image.open(uploaded_bg2).convert("RGB").resize((target_w, target_h), Image.Resampling.LANCZOS)
+                    bg_images.append(img_raw_2)
+                else:
+                    bg_images.append(img_raw_1) # Fallback jika kosong
+
+                if uploaded_bg3:
+                    img_raw_3 = Image.open(uploaded_bg3).convert("RGB").resize((target_w, target_h), Image.Resampling.LANCZOS)
+                    bg_images.append(img_raw_3)
+                else:
+                    bg_images.append(img_raw_1) # Fallback jika kosong
 
                 logo_img = None
                 if uploaded_logo:
                     try:
                         logo_img = Image.open(uploaded_logo).convert("RGBA")
-                        logo_img.thumbnail((220, 220), Image.Resampling.LANCZOS)
+                        logo_img.thumbnail((120 if is_short else 140, 120 if is_short else 140), Image.Resampling.LANCZOS)
                     except Exception:
                         logo_img = None
 
-                # MAPPING WARNA SELEKSI
                 def get_theme_colors(theme):
                     if theme == "Neon Cyan":
                         return (0, 220, 255), (0, 150, 255), (0, 255, 200)
@@ -231,42 +265,52 @@ if st.button("🔥 Render Video Visualizer Sekarang", type="primary"):
 
                 primary_color, secondary_color, accent_color = get_theme_colors(color_theme)
 
-                # 5. Fungsi Generator Frame Video
                 def make_frame(t):
                     frame_idx = min(int(t * fps), stft.shape[1] - 1)
                     progress = t / duration
 
+                    # Tentukan gambar aktif berdasarkan durasi (berganti tiap sepertiga durasi jika short)
+                    if is_short and len(bg_images) >= 3:
+                        if progress < 0.33:
+                            active_bg = bg_images[0]
+                        elif progress < 0.66:
+                            active_bg = bg_images[1]
+                        else:
+                            active_bg = bg_images[2]
+                    else:
+                        active_bg = bg_images[0]
+
                     # A. Efek Zoom In Background
-                    scale = 1.0 + (0.12 * progress)
-                    crop_w, crop_h = int(bg_w / scale), int(bg_h / scale)
-                    left = (bg_w - crop_w) // 2
-                    top = (bg_h - crop_h) // 2
+                    scale = 1.0 + (0.10 * progress)
+                    crop_w, crop_h = int(target_w / scale), int(target_h / scale)
+                    left = (target_w - crop_w) // 2
+                    top = (target_h - crop_h) // 2
                     
-                    frame_bg = bg_img.crop((left, top, left + crop_w, top + crop_h)).resize((bg_w, bg_h), Image.Resampling.LANCZOS)
+                    frame_bg = active_bg.crop((left, top, left + crop_w, top + crop_h)).resize((target_w, target_h), Image.Resampling.LANCZOS)
                     canvas = frame_bg.copy()
                     draw = ImageDraw.Draw(canvas)
 
-                    # B. Amplitudo Audio per Frame
+                    # B. Amplitudo Audio
                     amps = [np.mean(stft[freq_bins[b]:freq_bins[b+1], frame_idx]) for b in range(num_bars)]
                     max_amp = np.max(amps) if np.max(amps) > 0 else 1.0
                     norm_amps = [min(a / (max_amp * 0.7 + 1e-5), 1.0) for a in amps]
 
-                    # C. Pengaturan Ukuran Visualizer Otomatis Long Video
-                    bar_w = 16
-                    bar_gap = 6
-                    base_y = bg_h - 70
-                    max_bar_h = 180
+                    # C. Posisi Visualizer (Bawah untuk Long, Agak ke Tengah-Bawah untuk Short)
+                    bar_w = 14 if is_short else 16
+                    bar_gap = 5 if is_short else 6
+                    base_y = target_h - (180 if is_short else 70)
+                    max_bar_h = 140 if is_short else 180
                     
                     total_width = num_bars * (bar_w + bar_gap)
-                    start_x = (bg_w - total_width) // 2
+                    start_x = (target_w - total_width) // 2
 
-                    # --- MODE BALOK (Equalizer Bertumpuk) ---
+                    # --- RENDER SPEKTRUM ---
                     if style_spectrum == "Balok (Equalizer)":
                         for b in range(num_bars):
                             h_val = int(norm_amps[b] * max_bar_h) + 6
                             x0 = start_x + b * (bar_w + bar_gap)
                             x1 = x0 + bar_w
-                            num_segments = 12
+                            num_segments = 10
                             seg_h = max(h_val // num_segments, 2)
                             
                             for s in range(num_segments):
@@ -278,7 +322,6 @@ if st.button("🔥 Render Video Visualizer Sekarang", type="primary"):
                                 color = primary_color if seg_progress < 0.5 else (secondary_color if seg_progress < 0.8 else accent_color)
                                 draw.rectangle([x0, y0_seg, x1, y1_seg], fill=color)
 
-                    # --- MODE BAR (Batang Solid Modern) ---
                     elif style_spectrum == "Bar (Solid)":
                         for b in range(num_bars):
                             h_val = int(norm_amps[b] * max_bar_h) + 4
@@ -287,7 +330,6 @@ if st.button("🔥 Render Video Visualizer Sekarang", type="primary"):
                             y0 = base_y - h_val
                             draw.rectangle([x0, y0, x1, base_y], fill=primary_color)
 
-                    # --- MODE LINE (Garis Wave) ---
                     elif style_spectrum == "Line (Garis Wave)":
                         points = []
                         for b in range(num_bars):
@@ -295,51 +337,62 @@ if st.button("🔥 Render Video Visualizer Sekarang", type="primary"):
                             y = base_y - int(norm_amps[b] * max_bar_h)
                             points.append((x, y))
                         if len(points) > 1:
-                            draw.line(points, fill=primary_color, width=5)
+                            draw.line(points, fill=primary_color, width=4)
 
-                    # --- MODE CLine (Circle Line) ---
                     elif style_spectrum == "CLine (Circle Line)":
-                        cx, cy = bg_w // 2, bg_h // 2
-                        base_r = 140
+                        cx, cy = target_w // 2, (target_h // 2) + (100 if is_short else 0)
+                        base_r = 120
                         circle_points = []
                         for b in range(num_bars):
                             angle = (2 * math.pi / num_bars) * b
-                            r = base_r + (norm_amps[b] * 90)
+                            r = base_r + (norm_amps[b] * 70)
                             px = cx + int(r * math.cos(angle))
                             py = cy + int(r * math.sin(angle))
                             circle_points.append((px, py))
                         if len(circle_points) > 1:
-                            circle_points.append(circle_points[0]) # Tutup Lingkaran
-                            draw.line(circle_points, fill=primary_color, width=5)
+                            circle_points.append(circle_points[0])
+                            draw.line(circle_points, fill=primary_color, width=4)
 
-                    # --- MODE P2P (Point to Point) ---
                     elif style_spectrum == "P2P (Point to Point)":
                         points = []
                         for b in range(num_bars):
                             x = start_x + b * (bar_w + bar_gap) + (bar_w // 2)
                             y = base_y - int(norm_amps[b] * max_bar_h)
                             points.append((x, y))
-                            draw.ellipse([x-5, y-5, x+5, y+5], fill=accent_color)
+                            draw.ellipse([x-4, y-4, x+4, y+4], fill=accent_color)
                         if len(points) > 1:
                             draw.line(points, fill=primary_color, width=3)
 
-                    # D. Denyut Logo (Bass Pulsing Sync)
+                    # D. LOGO DI POJOK KIRI ATAS BERGOYANG
                     if logo_img:
                         avg_bass = np.mean(norm_amps[:num_bars//4])
-                        pulse_scale = 1.0 + (0.18 * avg_bass)
-                        
+                        pulse_scale = 1.0 + (0.15 * avg_bass)
                         lw, lh = logo_img.size
                         new_lw, new_lh = int(lw * pulse_scale), int(lh * pulse_scale)
-                        
                         pulsed_logo = logo_img.resize((new_lw, new_lh), Image.Resampling.LANCZOS)
-                        logo_x = (bg_w - new_lw) // 2
-                        logo_y = (bg_h - new_lh) // 2 - 20
-                        
-                        canvas.paste(pulsed_logo, (logo_x, logo_y), pulsed_logo)
+                        canvas.paste(pulsed_logo, (40, 40), pulsed_logo)
+
+                    # E. KHUSUS SHORT: HOOK DI AWAL & CTA DI AKHIR
+                    if is_short:
+                        try:
+                            font = ImageFont.load_default()
+                        except:
+                            font = None
+
+                        # Tampilkan Hook di 4 detik pertama
+                        if t <= 4.0 and hook_text:
+                            # Kotak semi transparan untuk latar teks hook
+                            draw.rectangle([50, 150, target_w - 50, 240], fill=(0, 0, 0, 160))
+                            draw.text((80, 175), hook_text, fill=(255, 255, 255), font=font)
+
+                        # Tampilkan CTA di 4 detik terakhir video
+                        if t >= (duration - 4.0) and cta_text:
+                            draw.rectangle([50, target_h - 300, target_w - 50, target_h - 210], fill=(20, 20, 20, 180))
+                            draw.text((80, target_h - 275), cta_text, fill=(0, 255, 200), font=font)
 
                     return np.array(canvas)
 
-                # 6. Render dan Buat File Video MP4
+                # 6. Render Video
                 video_clip = VideoClip(make_frame, duration=duration)
                 video_clip = video_clip.set_audio(audio_clip)
 
@@ -356,12 +409,11 @@ if st.button("🔥 Render Video Visualizer Sekarang", type="primary"):
                 st.success("🎉 Render Selesai!")
                 st.video(output_path)
 
-                # Tombol Download Video
                 with open(output_path, "rb") as file:
                     st.download_button(
                         label="📥 Download Hasil Video MP4",
                         data=file,
-                        file_name="Visualizer_Preview.mp4" if "3 Detik" in mode_render else f"{judul_terpilih}_Visualizer.mp4",
+                        file_name=f"{judul_terpilih}_Short.mp4" if is_short else f"{judul_terpilih}_Long.mp4",
                         mime="video/mp4"
                     )
 
