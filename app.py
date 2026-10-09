@@ -2,6 +2,7 @@ import streamlit as st
 import google.generativeai as genai
 import os
 import numpy as np
+import math
 from PIL import Image, ImageDraw
 import librosa
 
@@ -138,12 +139,12 @@ if st.button("📱 Buat Deskripsi & Hashtag Viral"):
     st.write(seo_res)
 
 # ----------------------------------------------------
-# 7. MESIN RENDER VIDEO ADVANCED (TEST PREVIEW & FULL)
+# 7. MESIN RENDER VIDEO ADVANCED (CUSTOM SPECTRUM & COLOR)
 # ----------------------------------------------------
 st.divider()
-st.subheader("🎬 7. Mesin Render Video Pro (Zoom + Spectrum + Logo)")
+st.subheader("🎬 7. Mesin Render Video Pro (Custom Visualizer & Warna)")
 
-st.write("Buat video visualizer musik sinematik dengan spektrum frekuensi audio bergerak, background zoom, dan logo dinamis!")
+st.write("Buat video visualizer musik sinematik dengan spektrum audio otomatis untuk format video long (16:9), kustomisasi warna, dan logo dinamis!")
 
 col_v1, col_v2, col_v3 = st.columns(3)
 
@@ -156,10 +157,18 @@ with col_v2:
 with col_v3:
     uploaded_logo = st.file_uploader("3. Upload Logo PNG Transparan (Opsional):", type=["png"])
 
-col_opt1, col_opt2 = st.columns(2)
+col_opt1, col_opt2, col_opt3 = st.columns(3)
 with col_opt1:
-    num_bars = st.slider("Jumlah Bar Spektrum Audio:", min_value=16, max_value=64, value=32, step=8)
+    style_spectrum = st.selectbox(
+        "Gaya Spektrum Audio:",
+        ["Balok (Equalizer)", "Bar (Solid)", "Line (Garis Wave)", "CLine (Circle Line)", "P2P (Point to Point)"]
+    )
 with col_opt2:
+    color_theme = st.selectbox(
+        "Warna Spektrum:",
+        ["Neon Cyan", "Sunset Red", "Electric Purple", "Cyber Green", "Gold Sunset"]
+    )
+with col_opt3:
     mode_render = st.radio("Pilih Mode Render:", ["🧪 Test Preview (3 Detik Cepat)", "🎬 Render Full Video Lagu"], horizontal=True)
 
 if st.button("🔥 Render Video Visualizer Sekarang", type="primary"):
@@ -184,6 +193,9 @@ if st.button("🔥 Render Video Visualizer Sekarang", type="primary"):
                     audio_clip = audio_clip_full
 
                 fps = 24
+
+                # OLEH KARENA VIDEO BERSKALA LONG (16:9 / 1280x720), HITUNG JUMLAH BAR OTOMATIS
+                num_bars = 48  # Jumlah bar optimal untuk skala video long 1280px
                 
                 # 3. Analisis Frekuensi Audio dengan Librosa
                 y, sr = librosa.load(audio_path, sr=22050, duration=duration)
@@ -202,6 +214,22 @@ if st.button("🔥 Render Video Visualizer Sekarang", type="primary"):
                         logo_img.thumbnail((220, 220), Image.Resampling.LANCZOS)
                     except Exception:
                         logo_img = None
+
+                # MAPPING WARNA SELEKSI
+                def get_theme_colors(theme):
+                    if theme == "Neon Cyan":
+                        return (0, 220, 255), (0, 150, 255), (0, 255, 200)
+                    elif theme == "Sunset Red":
+                        return (255, 50, 80), (255, 120, 0), (255, 200, 0)
+                    elif theme == "Electric Purple":
+                        return (180, 0, 255), (255, 0, 180), (0, 200, 255)
+                    elif theme == "Cyber Green":
+                        return (0, 255, 120), (180, 255, 0), (0, 255, 220)
+                    elif theme == "Gold Sunset":
+                        return (255, 190, 0), (255, 100, 0), (255, 230, 100)
+                    return (0, 255, 100), (255, 230, 0), (255, 30, 30)
+
+                primary_color, secondary_color, accent_color = get_theme_colors(color_theme)
 
                 # 5. Fungsi Generator Frame Video
                 def make_frame(t):
@@ -223,39 +251,77 @@ if st.button("🔥 Render Video Visualizer Sekarang", type="primary"):
                     max_amp = np.max(amps) if np.max(amps) > 0 else 1.0
                     norm_amps = [min(a / (max_amp * 0.7 + 1e-5), 1.0) for a in amps]
 
-                    # C. Spektrum Visualizer (Model Equalizer Bertumpuk)
-                    bar_w = 12
-                    bar_gap = 4
-                    base_y = bg_h - 60
-                    max_bar_h = 160
+                    # C. Pengaturan Ukuran Visualizer Otomatis Long Video
+                    bar_w = 16
+                    bar_gap = 6
+                    base_y = bg_h - 70
+                    max_bar_h = 180
                     
                     total_width = num_bars * (bar_w + bar_gap)
                     start_x = (bg_w - total_width) // 2
 
-                    for b in range(num_bars):
-                        h_val = int(norm_amps[b] * max_bar_h) + 6
-                        x0 = start_x + b * (bar_w + bar_gap)
-                        x1 = x0 + bar_w
-                        
-                        num_segments = 12
-                        seg_h = max(h_val // num_segments, 2)
-                        
-                        for s in range(num_segments):
-                            seg_progress = s / num_segments
-                            y1_seg = base_y - (s * (seg_h + 2))
-                            y0_seg = y1_seg - seg_h
-                            if y0_seg < base_y - h_val: 
-                                break
+                    # --- MODE BALOK (Equalizer Bertumpuk) ---
+                    if style_spectrum == "Balok (Equalizer)":
+                        for b in range(num_bars):
+                            h_val = int(norm_amps[b] * max_bar_h) + 6
+                            x0 = start_x + b * (bar_w + bar_gap)
+                            x1 = x0 + bar_w
+                            num_segments = 12
+                            seg_h = max(h_val // num_segments, 2)
                             
-                            # Gradien Warna: Bawah (Hijau) -> Tengah (Kuning) -> Atas (Merah)
-                            if seg_progress < 0.5:
-                                color = (0, 255, 100)
-                            elif seg_progress < 0.8:
-                                color = (255, 230, 0)
-                            else:
-                                color = (255, 30, 30)
-                                
-                            draw.rectangle([x0, y0_seg, x1, y1_seg], fill=color)
+                            for s in range(num_segments):
+                                seg_progress = s / num_segments
+                                y1_seg = base_y - (s * (seg_h + 2))
+                                y0_seg = y1_seg - seg_h
+                                if y0_seg < base_y - h_val: 
+                                    break
+                                color = primary_color if seg_progress < 0.5 else (secondary_color if seg_progress < 0.8 else accent_color)
+                                draw.rectangle([x0, y0_seg, x1, y1_seg], fill=color)
+
+                    # --- MODE BAR (Batang Solid Modern) ---
+                    elif style_spectrum == "Bar (Solid)":
+                        for b in range(num_bars):
+                            h_val = int(norm_amps[b] * max_bar_h) + 4
+                            x0 = start_x + b * (bar_w + bar_gap)
+                            x1 = x0 + bar_w
+                            y0 = base_y - h_val
+                            draw.rectangle([x0, y0, x1, base_y], fill=primary_color)
+
+                    # --- MODE LINE (Garis Wave) ---
+                    elif style_spectrum == "Line (Garis Wave)":
+                        points = []
+                        for b in range(num_bars):
+                            x = start_x + b * (bar_w + bar_gap) + (bar_w // 2)
+                            y = base_y - int(norm_amps[b] * max_bar_h)
+                            points.append((x, y))
+                        if len(points) > 1:
+                            draw.line(points, fill=primary_color, width=5)
+
+                    # --- MODE CLine (Circle Line) ---
+                    elif style_spectrum == "CLine (Circle Line)":
+                        cx, cy = bg_w // 2, bg_h // 2
+                        base_r = 140
+                        circle_points = []
+                        for b in range(num_bars):
+                            angle = (2 * math.pi / num_bars) * b
+                            r = base_r + (norm_amps[b] * 90)
+                            px = cx + int(r * math.cos(angle))
+                            py = cy + int(r * math.sin(angle))
+                            circle_points.append((px, py))
+                        if len(circle_points) > 1:
+                            circle_points.append(circle_points[0]) # Tutup Lingkaran
+                            draw.line(circle_points, fill=primary_color, width=5)
+
+                    # --- MODE P2P (Point to Point) ---
+                    elif style_spectrum == "P2P (Point to Point)":
+                        points = []
+                        for b in range(num_bars):
+                            x = start_x + b * (bar_w + bar_gap) + (bar_w // 2)
+                            y = base_y - int(norm_amps[b] * max_bar_h)
+                            points.append((x, y))
+                            draw.ellipse([x-5, y-5, x+5, y+5], fill=accent_color)
+                        if len(points) > 1:
+                            draw.line(points, fill=primary_color, width=3)
 
                     # D. Denyut Logo (Bass Pulsing Sync)
                     if logo_img:
