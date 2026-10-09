@@ -4,7 +4,13 @@ import os
 import numpy as np
 from PIL import Image, ImageDraw
 import librosa
-from moviepy.editor import AudioFileClip, VideoClip
+
+# Import MoviePy dengan kompatibilitas versi 1.x & 2.x
+try:
+    from moviepy.editor import AudioFileClip, VideoClip
+except ImportError:
+    from moviepy.audio.io.AudioFileClip import AudioFileClip
+    from moviepy.video.VideoClip import VideoClip
 
 # ----------------------------------------------------
 # CONFIGURASI HALAMAN STREAMLIT
