@@ -23,7 +23,7 @@ st.set_page_config(
 )
 
 st.title("🎵 Suno AI All-in-One Studio & Video Renderer")
-st.write("Aplikasi lengkap untuk membuat Lirik, Prompt Visual, SEO, dan Render Video Visualizer Long & Short (Multi-Artwork + Hook & CTA)!")
+st.write("Studio lengkap dengan Lirik Berjalan, Hook Otomatis, Multi-Artwork, dan Opsi Tanpa Spektrum!")
 
 # ----------------------------------------------------
 # MANAGEMENT GEMINI API KEY & MODEL FALLBACK
@@ -92,6 +92,10 @@ judul_terpilih = st.text_input("Ketik/Pilih Judul Lagu Utama:", value=tema_lagu 
 st.divider()
 st.subheader("✍️ 3. Generator Lirik Lagu (Suno AI Format)")
 
+lirik_state_key = "generated_lirik_text"
+if lirik_state_key not in st.session_state:
+    st.session_state[lirik_state_key] = "[Verse 1]\nTulis atau generate lirik di sini..."
+
 if st.button("🔥 Buat Lirik Lagu Lengkap", type="primary"):
     if not tema_lagu:
         st.warning("Masukkan tema lagu terlebih dahulu!")
@@ -99,7 +103,9 @@ if st.button("🔥 Buat Lirik Lagu Lengkap", type="primary"):
         with st.spinner("Membuat lirik lagu sinematik high-retention..."):
             prompt_lirik = f"Buatkan lirik lagu yang emosional, catchy, dan high-retention untuk Suno AI dengan Judul: '{judul_terpilih}', Tema: '{tema_lagu}', Genre: '{genre_str}'. Gunakan struktur tag meta Suno AI [Verse 1], [Chorus], [Bridge], [Outro]."
             lirik_res = generate_ai_response(prompt_lirik)
-            st.text_area("Lirik Lagu Terbentuk (Tinggal Copas ke Suno):", value=lirik_res, height=320)
+            st.session_state[lirik_state_key] = lirik_res
+
+lirik_input = st.text_area("Lirik Lagu (Digunakan untuk Lirik Berjalan & Hook Otomatis):", value=st.session_state[lirik_state_key], height=220)
 
 # ----------------------------------------------------
 # 4. OPTIMIZER STYLE / PROMPT SUNO
@@ -135,14 +141,14 @@ if st.button("📱 Buat Deskripsi & Hashtag Viral"):
     st.write(seo_res)
 
 # ----------------------------------------------------
-# 7. MESIN RENDER VIDEO PRO (LONG & SHORT DENGAN HOOK, CTA & 3 ARTWORK)
+# 7. MESIN RENDER VIDEO PRO ULTIMATE
 # ----------------------------------------------------
 st.divider()
-st.subheader("🎬 7. Mesin Render Video Pro (Long 16:9 & Short 9:16)")
+st.subheader("🎬 7. Mesin Render Video Pro (Long & Short Ultimate)")
 
-st.write("Pilih format video, unggah audio, kustomisasi warna, dan gunakan hingga 3 artwork berbeda agar visual dinamis!")
+st.write("Render video lengkap dengan lirik berjalan, hook otomatis dari lirik, multi-artwork, dan opsi tanpa spektrum!")
 
-format_video = st.radio("Pilih Format Video:", ["📺 Long Video (16:9 Horizontal)", "📱 Short Video (9:16 Vertikal + Hook & CTA)"], horizontal=True)
+format_video = st.radio("Pilih Format Video:", ["📺 Long Video (16:9 Horizontal + Lirik Berjalan)", "📱 Short Video (9:16 Vertikal + Hook Lirik Otomatis)"], horizontal=True)
 
 col_v1, col_v2, col_v3, col_v4 = st.columns(4)
 
@@ -153,7 +159,6 @@ with col_v2:
     uploaded_bg1 = st.file_uploader("2. Artwork Utama / 1:", type=["jpg", "jpeg", "png"])
 
 with col_v3:
-    # Jika Short, sediakan slot 3 artwork
     if "Short" in format_video:
         uploaded_bg2 = st.file_uploader("3. Artwork 2 (Opsional):", type=["jpg", "jpeg", "png"])
     else:
@@ -171,26 +176,20 @@ col_opt1, col_opt2, col_opt3 = st.columns(3)
 with col_opt1:
     style_spectrum = st.selectbox(
         "Gaya Spektrum Audio:",
-        ["Balok (Equalizer)", "Bar (Solid)", "Line (Garis Wave)", "CLine (Circle Line)", "P2P (Point to Point)"]
+        ["🚫 Tanpa Spektrum (Hanya Background + Logo)", "Balok (Equalizer)", "Bar (Solid)", "Line (Garis Wave)", "CLine (Circle Line)", "P2P (Point to Point)"]
     )
 with col_opt2:
     color_theme = st.selectbox(
-        "Warna Spektrum:",
+        "Warna Spektrum / Aksen:",
         ["Neon Cyan", "Sunset Red", "Electric Purple", "Cyber Green", "Gold Sunset"]
     )
 with col_opt3:
     mode_render = st.radio("Pilih Mode Render:", ["🧪 Test Preview (3 Detik Cepat)", "🎬 Render Full Video"], horizontal=True)
 
-# Field tambahan khusus Short untuk Hook & CTA
-hook_text = ""
+# CTA tambahan khusus Short
 cta_text = ""
 if "Short" in format_video:
-    st.info("💡 Atur Hook & CTA agar video Short kamu ber-retensi tinggi!")
-    col_h1, col_h2 = st.columns(2)
-    with col_h1:
-        hook_text = st.text_input("Teks Hook (Muncul di Awal Video):", value="Lagu ini bakal bikin kamu flashback... 🥺")
-    with col_h2:
-        cta_text = st.text_input("Teks CTA (Muncul di Akhir Video):", value="Dengerin sampai habis & Follow ya! 🎵")
+    cta_text = st.text_input("Teks CTA (Muncul di Akhir Video Short):", value="Dengerin versi full-nya & Subscribe ya! 🎵")
 
 if st.button("🔥 Render Video Sekarang", type="primary"):
     if uploaded_audio is None or uploaded_bg1 is None:
@@ -204,7 +203,6 @@ if st.button("🔥 Render Video Sekarang", type="primary"):
 
                 audio_clip_full = AudioFileClip(audio_path)
                 
-                # Batasi durasi jika test preview, jika Short video batasi idealnya maks 30-60 detik jika full, atau ikut audio
                 if "3 Detik" in mode_render:
                     duration = min(3.0, audio_clip_full.duration)
                     audio_clip = audio_clip_full.subclip(0, duration)
@@ -215,7 +213,6 @@ if st.button("🔥 Render Video Sekarang", type="primary"):
                 fps = 24
                 is_short = "Short" in format_video
                 
-                # Resolusi Target
                 target_w = 1080 if is_short else 1280
                 target_h = 1920 if is_short else 720
                 num_bars = 36 if is_short else 48
@@ -225,7 +222,20 @@ if st.button("🔥 Render Video Sekarang", type="primary"):
                 stft = np.abs(librosa.stft(y, n_fft=2048, hop_length=hop_length))
                 freq_bins = np.linspace(0, stft.shape[0] // 2, num_bars + 1, dtype=int)
 
-                # Load Backgrounds (Multi-artwork support)
+                # Parsing lirik menjadi baris-baris bersih untuk lirik berjalan / hook
+                raw_lines = lirik_input.split('\n')
+                clean_lyrics = []
+                for line in raw_lines:
+                    line_str = line.strip()
+                    if line_str and not line_str.startswith('['):
+                        clean_lyrics.append(line_str)
+                if not clean_lyrics:
+                    clean_lyrics = [judul_terpilih, "Nikmati alunan musik ini..."]
+
+                # Ambil baris pertama lirik untuk Hook otomatis di Short
+                auto_hook_text = clean_lyrics[0] if len(clean_lyrics) > 0 else "Dengarkan lagu ini sampai habis..."
+
+                # Load Backgrounds
                 bg_images = []
                 img_raw_1 = Image.open(uploaded_bg1).convert("RGB").resize((target_w, target_h), Image.Resampling.LANCZOS)
                 bg_images.append(img_raw_1)
@@ -234,13 +244,13 @@ if st.button("🔥 Render Video Sekarang", type="primary"):
                     img_raw_2 = Image.open(uploaded_bg2).convert("RGB").resize((target_w, target_h), Image.Resampling.LANCZOS)
                     bg_images.append(img_raw_2)
                 else:
-                    bg_images.append(img_raw_1) # Fallback jika kosong
+                    bg_images.append(img_raw_1)
 
                 if uploaded_bg3:
                     img_raw_3 = Image.open(uploaded_bg3).convert("RGB").resize((target_w, target_h), Image.Resampling.LANCZOS)
                     bg_images.append(img_raw_3)
                 else:
-                    bg_images.append(img_raw_1) # Fallback jika kosong
+                    bg_images.append(img_raw_1)
 
                 logo_img = None
                 if uploaded_logo:
@@ -269,7 +279,7 @@ if st.button("🔥 Render Video Sekarang", type="primary"):
                     frame_idx = min(int(t * fps), stft.shape[1] - 1)
                     progress = t / duration
 
-                    # Tentukan gambar aktif berdasarkan durasi (berganti tiap sepertiga durasi jika short)
+                    # Pilih background aktif (multi-artwork untuk short)
                     if is_short and len(bg_images) >= 3:
                         if progress < 0.33:
                             active_bg = bg_images[0]
@@ -280,7 +290,7 @@ if st.button("🔥 Render Video Sekarang", type="primary"):
                     else:
                         active_bg = bg_images[0]
 
-                    # A. Efek Zoom In Background
+                    # A. Zoom In Background
                     scale = 1.0 + (0.10 * progress)
                     crop_w, crop_h = int(target_w / scale), int(target_h / scale)
                     left = (target_w - crop_w) // 2
@@ -295,75 +305,74 @@ if st.button("🔥 Render Video Sekarang", type="primary"):
                     max_amp = np.max(amps) if np.max(amps) > 0 else 1.0
                     norm_amps = [min(a / (max_amp * 0.7 + 1e-5), 1.0) for a in amps]
 
-                    # C. Posisi Visualizer (Bawah untuk Long, Agak ke Tengah-Bawah untuk Short)
-                    bar_w = 14 if is_short else 16
-                    bar_gap = 5 if is_short else 6
-                    base_y = target_h - (180 if is_short else 70)
-                    max_bar_h = 140 if is_short else 180
-                    
-                    total_width = num_bars * (bar_w + bar_gap)
-                    start_x = (target_w - total_width) // 2
+                    # C. Render Spektrum (Jika tidak dipilih "Tanpa Spektrum")
+                    if style_spectrum != "🚫 Tanpa Spektrum (Hanya Background + Logo)":
+                        bar_w = 14 if is_short else 16
+                        bar_gap = 5 if is_short else 6
+                        base_y = target_h - (180 if is_short else 90)
+                        max_bar_h = 140 if is_short else 180
+                        
+                        total_width = num_bars * (bar_w + bar_gap)
+                        start_x = (target_w - total_width) // 2
 
-                    # --- RENDER SPEKTRUM ---
-                    if style_spectrum == "Balok (Equalizer)":
-                        for b in range(num_bars):
-                            h_val = int(norm_amps[b] * max_bar_h) + 6
-                            x0 = start_x + b * (bar_w + bar_gap)
-                            x1 = x0 + bar_w
-                            num_segments = 10
-                            seg_h = max(h_val // num_segments, 2)
-                            
-                            for s in range(num_segments):
-                                seg_progress = s / num_segments
-                                y1_seg = base_y - (s * (seg_h + 2))
-                                y0_seg = y1_seg - seg_h
-                                if y0_seg < base_y - h_val: 
-                                    break
-                                color = primary_color if seg_progress < 0.5 else (secondary_color if seg_progress < 0.8 else accent_color)
-                                draw.rectangle([x0, y0_seg, x1, y1_seg], fill=color)
+                        if style_spectrum == "Balok (Equalizer)":
+                            for b in range(num_bars):
+                                h_val = int(norm_amps[b] * max_bar_h) + 6
+                                x0 = start_x + b * (bar_w + bar_gap)
+                                x1 = x0 + bar_w
+                                num_segments = 10
+                                seg_h = max(h_val // num_segments, 2)
+                                for s in range(num_segments):
+                                    seg_progress = s / num_segments
+                                    y1_seg = base_y - (s * (seg_h + 2))
+                                    y0_seg = y1_seg - seg_h
+                                    if y0_seg < base_y - h_val: 
+                                        break
+                                    color = primary_color if seg_progress < 0.5 else (secondary_color if seg_progress < 0.8 else accent_color)
+                                    draw.rectangle([x0, y0_seg, x1, y1_seg], fill=color)
 
-                    elif style_spectrum == "Bar (Solid)":
-                        for b in range(num_bars):
-                            h_val = int(norm_amps[b] * max_bar_h) + 4
-                            x0 = start_x + b * (bar_w + bar_gap)
-                            x1 = x0 + bar_w
-                            y0 = base_y - h_val
-                            draw.rectangle([x0, y0, x1, base_y], fill=primary_color)
+                        elif style_spectrum == "Bar (Solid)":
+                            for b in range(num_bars):
+                                h_val = int(norm_amps[b] * max_bar_h) + 4
+                                x0 = start_x + b * (bar_w + bar_gap)
+                                x1 = x0 + bar_w
+                                y0 = base_y - h_val
+                                draw.rectangle([x0, y0, x1, base_y], fill=primary_color)
 
-                    elif style_spectrum == "Line (Garis Wave)":
-                        points = []
-                        for b in range(num_bars):
-                            x = start_x + b * (bar_w + bar_gap) + (bar_w // 2)
-                            y = base_y - int(norm_amps[b] * max_bar_h)
-                            points.append((x, y))
-                        if len(points) > 1:
-                            draw.line(points, fill=primary_color, width=4)
+                        elif style_spectrum == "Line (Garis Wave)":
+                            points = []
+                            for b in range(num_bars):
+                                x = start_x + b * (bar_w + bar_gap) + (bar_w // 2)
+                                y = base_y - int(norm_amps[b] * max_bar_h)
+                                points.append((x, y))
+                            if len(points) > 1:
+                                draw.line(points, fill=primary_color, width=4)
 
-                    elif style_spectrum == "CLine (Circle Line)":
-                        cx, cy = target_w // 2, (target_h // 2) + (100 if is_short else 0)
-                        base_r = 120
-                        circle_points = []
-                        for b in range(num_bars):
-                            angle = (2 * math.pi / num_bars) * b
-                            r = base_r + (norm_amps[b] * 70)
-                            px = cx + int(r * math.cos(angle))
-                            py = cy + int(r * math.sin(angle))
-                            circle_points.append((px, py))
-                        if len(circle_points) > 1:
-                            circle_points.append(circle_points[0])
-                            draw.line(circle_points, fill=primary_color, width=4)
+                        elif style_spectrum == "CLine (Circle Line)":
+                            cx, cy = target_w // 2, (target_h // 2) + (100 if is_short else 0)
+                            base_r = 120
+                            circle_points = []
+                            for b in range(num_bars):
+                                angle = (2 * math.pi / num_bars) * b
+                                r = base_r + (norm_amps[b] * 70)
+                                px = cx + int(r * math.cos(angle))
+                                py = cy + int(r * math.sin(angle))
+                                circle_points.append((px, py))
+                            if len(circle_points) > 1:
+                                circle_points.append(circle_points[0])
+                                draw.line(circle_points, fill=primary_color, width=4)
 
-                    elif style_spectrum == "P2P (Point to Point)":
-                        points = []
-                        for b in range(num_bars):
-                            x = start_x + b * (bar_w + bar_gap) + (bar_w // 2)
-                            y = base_y - int(norm_amps[b] * max_bar_h)
-                            points.append((x, y))
-                            draw.ellipse([x-4, y-4, x+4, y+4], fill=accent_color)
-                        if len(points) > 1:
-                            draw.line(points, fill=primary_color, width=3)
+                        elif style_spectrum == "P2P (Point to Point)":
+                            points = []
+                            for b in range(num_bars):
+                                x = start_x + b * (bar_w + bar_gap) + (bar_w // 2)
+                                y = base_y - int(norm_amps[b] * max_bar_h)
+                                points.append((x, y))
+                                draw.ellipse([x-4, y-4, x+4, y+4], fill=accent_color)
+                            if len(points) > 1:
+                                draw.line(points, fill=primary_color, width=3)
 
-                    # D. LOGO DI POJOK KIRI ATAS BERGOYANG
+                    # D. LOGO BERGOYANG BASS
                     if logo_img:
                         avg_bass = np.mean(norm_amps[:num_bars//4])
                         pulse_scale = 1.0 + (0.15 * avg_bass)
@@ -372,23 +381,31 @@ if st.button("🔥 Render Video Sekarang", type="primary"):
                         pulsed_logo = logo_img.resize((new_lw, new_lh), Image.Resampling.LANCZOS)
                         canvas.paste(pulsed_logo, (40, 40), pulsed_logo)
 
-                    # E. KHUSUS SHORT: HOOK DI AWAL & CTA DI AKHIR
-                    if is_short:
-                        try:
-                            font = ImageFont.load_default()
-                        except:
-                            font = None
+                    # E. LIRIK BERJALAN DI LONG VIDEO (DI ATAS SPEKTRUM) ATAU HOOK OTOMATIS DI SHORT
+                    try:
+                        font = ImageFont.load_default()
+                    except:
+                        font = None
 
-                        # Tampilkan Hook di 4 detik pertama
-                        if t <= 4.0 and hook_text:
-                            # Kotak semi transparan untuk latar teks hook
-                            draw.rectangle([50, 150, target_w - 50, 240], fill=(0, 0, 0, 160))
-                            draw.text((80, 175), hook_text, fill=(255, 255, 255), font=font)
+                    if not is_short:
+                        # Logika Lirik Berjalan Long Video (Berganti tiap interval waktu tertentu)
+                        if clean_lyrics:
+                            lyric_index = int(progress * len(clean_lyrics)) % len(clean_lyrics)
+                            active_lyric = clean_lyrics[lyric_index]
+                            
+                            # Posisi di atas spektrum (sekitar y = 580)
+                            box_y = 570
+                            draw.rectangle([100, box_y, target_w - 100, box_y + 55], fill=(0, 0, 0, 150))
+                            draw.text((120, box_y + 18), f"♫ {active_lyric}", fill=(255, 255, 255), font=font)
+                    else:
+                        # Logika Short: Hook Otomatis dari Lirik di 4 detik pertama & CTA di akhir
+                        if t <= 4.0 and auto_hook_text:
+                            draw.rectangle([50, 160, target_w - 50, 240], fill=(0, 0, 0, 180))
+                            draw.text((80, 185), f"🔥 {auto_hook_text}", fill=(255, 255, 255), font=font)
 
-                        # Tampilkan CTA di 4 detik terakhir video
                         if t >= (duration - 4.0) and cta_text:
-                            draw.rectangle([50, target_h - 300, target_w - 50, target_h - 210], fill=(20, 20, 20, 180))
-                            draw.text((80, target_h - 275), cta_text, fill=(0, 255, 200), font=font)
+                            draw.rectangle([50, target_h - 280, target_w - 50, target_h - 200], fill=(20, 20, 20, 190))
+                            draw.text((80, target_h - 250), cta_text, fill=(0, 255, 200), font=font)
 
                     return np.array(canvas)
 
@@ -396,26 +413,4 @@ if st.button("🔥 Render Video Sekarang", type="primary"):
                 video_clip = VideoClip(make_frame, duration=duration)
                 video_clip = video_clip.set_audio(audio_clip)
 
-                output_path = "output_visualizer.mp4"
-                video_clip.write_videofile(
-                    output_path,
-                    fps=fps,
-                    codec="libx264",
-                    audio_codec="aac",
-                    preset="ultrafast",
-                    logger=None
-                )
-
-                st.success("🎉 Render Selesai!")
-                st.video(output_path)
-
-                with open(output_path, "rb") as file:
-                    st.download_button(
-                        label="📥 Download Hasil Video MP4",
-                        data=file,
-                        file_name=f"{judul_terpilih}_Short.mp4" if is_short else f"{judul_terpilih}_Long.mp4",
-                        mime="video/mp4"
-                    )
-
-            except Exception as e:
-                st.error(f"Gagal merender video: {e}")
+ 
