@@ -1,2 +1,7 @@
 streamlit
 google-generativeai
+moviepy
+Pillow
+numpy
+librosa
+matplotlib
