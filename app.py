@@ -12,9 +12,15 @@ st.caption("Platform Produksi Lagu, Lirik High-Retention, Prompt Suno, Artwork S
 try:
     api_key = st.secrets["GEMINI_API_KEY"]
     genai.configure(api_key=api_key)
-    model = genai.GenerativeModel('gemini-1.5-flash')
+    
+    # Inisialisasi model dengan fallback otomatis untuk mencegah error 404
+    try:
+        model = genai.GenerativeModel('gemini-2.5-flash')
+    except Exception:
+        model = genai.GenerativeModel('gemini-1.5-flash-latest')
+
 except Exception as e:
-    st.error("⚠️ Gemini API Key belum terpasang di `.streamlit/secrets.toml`!")
+    st.error("⚠️ Gemini API Key belum terpasang di Streamlit Secrets!")
 
 # ----------------------------------------------------
 # 1. TEMA & SUB-TEMA (DINAMIS)
@@ -229,8 +235,4 @@ if st.button("🚀 Optimasi SEO untuk Release Lagu", type="primary"):
         """
         
         res_seo = model.generate_content(prompt_seo)
-        st.session_state.last_seo_result = res_seo.text
-        st.success("Paket SEO Berhasil Dibuat!")
-
-if 'last_seo_result' in st.session_state:
-    st.markdown(st.session_state.last_seo_result)
+        st.session_
