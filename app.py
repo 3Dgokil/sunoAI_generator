@@ -16,28 +16,28 @@ def get_working_model():
         api_key = st.secrets["GEMINI_API_KEY"]
         genai.configure(api_key=api_key)
         
-        # Daftar prioritas model yang akan dicoba secara berurutan
-        preferred_models = [
-            'gemini-1.5-flash',
-            'gemini-2.0-flash',
-            'gemini-1.5-flash-latest',
-            'gemini-1.5-pro',
-            'gemini-1.0-pro'
-        ]
-        
-        # Cek daftar model yang benar-benar didukung oleh API Key kamu
+        # Cek daftar model yang mendukung generateContent di akun kamu
         available_models = [m.name.replace('models/', '') for m in genai.list_models() if 'generateContent' in m.supported_generation_methods]
         
-        # Pilih model pertama yang cocok
+        # Daftar prioritas model terbaru (gemini-3.8-flash berada di posisi paling atas)
+        preferred_models = [
+            'gemini-3.8-flash',
+            'gemini-2.0-flash',
+            'gemini-1.5-flash',
+            'gemini-1.5-pro'
+        ]
+        
+        # Pilih model pertama yang cocok dengan akun kamu
         for target in preferred_models:
             if target in available_models:
                 return genai.GenerativeModel(target)
                 
-        # Jika tidak ada yang cocok di daftar preferred, pilih model pertama dari yang tersedia
+        # Fallback jika model di daftar tidak ada, gunakan model generateContent pertama yang ditemukan
         if available_models:
             return genai.GenerativeModel(available_models[0])
             
-        return genai.GenerativeModel('gemini-1.5-flash')
+        # Default fallback
+        return genai.GenerativeModel('gemini-3.8-flash')
     except Exception as e:
         st.error(f"⚠️ Gagal menghubungkan Gemini API Key: {e}")
         return None
