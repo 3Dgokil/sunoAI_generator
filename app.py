@@ -272,13 +272,11 @@ if st.button("🔥 Render Video Sekarang", type="primary"):
 
                 primary_color, secondary_color, accent_color = get_theme_colors(color_theme)
 
-                # Coba load font TTF yang lebih besar jika tersedia, fallback ke default
+                # Load font dengan fallback ukuran yang besar (menggunakan scaling factor jika pakai default font)
                 try:
-                    font_large = ImageFont.truetype("arial.ttf", 36)
-                    font_medium = ImageFont.truetype("arial.ttf", 28)
+                    font_main = ImageFont.truetype("arial.ttf", 48 if is_short else 36)
                 except Exception:
-                    font_large = ImageFont.load_default()
-                    font_medium = ImageFont.load_default()
+                    font_main = ImageFont.load_default()
 
                 def make_frame(t):
                     frame_idx = min(int(t * fps), stft.shape[1] - 1)
@@ -322,18 +320,33 @@ if st.button("🔥 Render Video Sekarang", type="primary"):
                     if not is_short:
                         if clean_lyrics:
                             active_lyric = clean_lyrics[int(progress * len(clean_lyrics)) % len(clean_lyrics)]
-                            box_y = 570
-                            draw.rectangle([80, box_y, target_w - 80, box_y + 70], fill=(0, 0, 0, 200))
-                            draw.text((100, box_y + 18), f"♫ {active_lyric}", fill=(255, 255, 255), font=font_medium)
+                            box_y = 550
+                            draw.rectangle([80, box_y, target_w - 80, box_y + 80], fill=(0, 0, 0, 220))
+                            draw.text((100, box_y + 20), f"♫ {active_lyric}", fill=(255, 255, 255), font=font_main)
                     else:
-                        # PERBAIKAN: Kotak latar belakang lebih gelap solid & teks lebih besar berwarna kuning terang
+                        # RENDER HOOK: Kotak proporsional dengan teks besar di tengah
                         if t <= 4.0 and auto_hook_text:
-                            draw.rounded_rectangle([40, 140, target_w - 40, 260], radius=15, fill=(0, 0, 0, 230))
-                            draw.text((70, 175), f"🔥 {auto_hook_text}", fill=(255, 230, 0), font=font_large)
+                            box_box = [40, 150, target_w - 40, 300]
+                            draw.rounded_rectangle(box_box, radius=20, fill=(0, 0, 0, 240))
+                            
+                            # Bungkus teks otomatis agar pas di dalam kotak box
+                            words = auto_hook_text.split()
+                            line1, line2 = "", ""
+                            for w in words:
+                                if draw.textlength(line1 + " " + w, font=font_main) < (target_w - 120):
+                                    line1 = (line1 + " " + w).strip()
+                                else:
+                                    line2 = (line2 + " " + w).strip()
+                            
+                            draw.text((70, 180), f"🔥 {line1}", fill=(255, 230, 0), font=font_main)
+                            if line2:
+                                draw.text((70, 230), f"    {line2}", fill=(255, 230, 0), font=font_main)
 
+                        # RENDER CTA: Kotak di bagian bawah
                         if t >= (duration - 4.0) and cta_text:
-                            draw.rounded_rectangle([40, target_h - 320, target_w - 40, target_h - 220], radius=15, fill=(10, 10, 10, 240))
-                            draw.text((70, target_h - 285), cta_text, fill=(0, 255, 200), font=font_medium)
+                            cta_box = [40, target_h - 350, target_w - 40, target_h - 220]
+                            draw.rounded_rectangle(cta_box, radius=20, fill=(15, 15, 15, 240))
+                            draw.text((70, target_h - 300), cta_text, fill=(0, 255, 200), font=font_main)
 
                     return np.array(canvas)
 
@@ -399,6 +412,4 @@ if st.button("🚀 Gabungkan Video Sekarang", type="primary"):
 
                 for t_path in temp_video_paths:
                     if os.path.exists(t_path):
-                        os.remove(t_path)
-            except Exception as e:
-                st.error(f"Gagal menggabungkan video: {e}")
+                   
