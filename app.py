@@ -272,6 +272,14 @@ if st.button("🔥 Render Video Sekarang", type="primary"):
 
                 primary_color, secondary_color, accent_color = get_theme_colors(color_theme)
 
+                # Coba load font TTF yang lebih besar jika tersedia, fallback ke default
+                try:
+                    font_large = ImageFont.truetype("arial.ttf", 36)
+                    font_medium = ImageFont.truetype("arial.ttf", 28)
+                except Exception:
+                    font_large = ImageFont.load_default()
+                    font_medium = ImageFont.load_default()
+
                 def make_frame(t):
                     frame_idx = min(int(t * fps), stft.shape[1] - 1)
                     progress = t / duration
@@ -311,22 +319,21 @@ if st.button("🔥 Render Video Sekarang", type="primary"):
                         pulsed_logo = logo_img.resize((int(lw * pulse_scale), int(lh * pulse_scale)), Image.Resampling.LANCZOS)
                         canvas.paste(pulsed_logo, (40, 40), pulsed_logo)
 
-                    font = ImageFont.load_default()
-
                     if not is_short:
                         if clean_lyrics:
                             active_lyric = clean_lyrics[int(progress * len(clean_lyrics)) % len(clean_lyrics)]
                             box_y = 570
-                            draw.rectangle([100, box_y, target_w - 100, box_y + 55], fill=(0, 0, 0, 150))
-                            draw.text((120, box_y + 18), f"♫ {active_lyric}", fill=(255, 255, 255), font=font)
+                            draw.rectangle([80, box_y, target_w - 80, box_y + 70], fill=(0, 0, 0, 200))
+                            draw.text((100, box_y + 18), f"♫ {active_lyric}", fill=(255, 255, 255), font=font_medium)
                     else:
+                        # PERBAIKAN: Kotak latar belakang lebih gelap solid & teks lebih besar berwarna kuning terang
                         if t <= 4.0 and auto_hook_text:
-                            draw.rectangle([50, 160, target_w - 50, 240], fill=(0, 0, 0, 180))
-                            draw.text((80, 185), f"🔥 {auto_hook_text}", fill=(255, 255, 255), font=font)
+                            draw.rounded_rectangle([40, 140, target_w - 40, 260], radius=15, fill=(0, 0, 0, 230))
+                            draw.text((70, 175), f"🔥 {auto_hook_text}", fill=(255, 230, 0), font=font_large)
 
                         if t >= (duration - 4.0) and cta_text:
-                            draw.rectangle([50, target_h - 280, target_w - 50, target_h - 200], fill=(20, 20, 20, 190))
-                            draw.text((80, target_h - 250), cta_text, fill=(0, 255, 200), font=font)
+                            draw.rounded_rectangle([40, target_h - 320, target_w - 40, target_h - 220], radius=15, fill=(10, 10, 10, 240))
+                            draw.text((70, target_h - 285), cta_text, fill=(0, 255, 200), font=font_medium)
 
                     return np.array(canvas)
 
