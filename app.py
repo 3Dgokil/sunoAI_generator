@@ -411,4 +411,5 @@ if st.button("🔥 Render Video Sekarang", type="primary"):
                             draw.text((80, 185), f"🔥 {auto_hook_text}", fill=(255, 255, 255), font=font)
 
                         if t >= (duration - 4.0) and cta_text:
-                            draw.rectangle([50, target_h - 280, target_w - 50, target_h - 200], fill=(20, 20, 20, 190
+                            rect_box = [50, target_h - 280, target_w - 50, target_h - 200]
+                          
