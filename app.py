@@ -393,13 +393,12 @@ if st.button("🔥 Render Video Sekarang", type="primary"):
                         pulsed_logo = logo_img.resize((new_lw, new_lh), Image.Resampling.LANCZOS)
                         canvas.paste(pulsed_logo, (40, 40), pulsed_logo)
 
-                    # Load font aman dengan fallback ukuran besar
                     try:
-                        font_large = ImageFont.truetype("arial.ttf", 46)
-                        font_medium = ImageFont.truetype("arial.ttf", 34)
-                    except Exception:
                         font_large = ImageFont.load_default()
                         font_medium = ImageFont.load_default()
+                    except Exception:
+                        font_large = None
+                        font_medium = None
 
                     if not is_short:
                         if clean_lyrics:
@@ -409,6 +408,7 @@ if st.button("🔥 Render Video Sekarang", type="primary"):
                             draw.rectangle([100, box_y, target_w - 100, box_y + 65], fill=(0, 0, 0, 160))
                             draw.text((120, box_y + 15), f"♫ {active_lyric}", fill=(255, 255, 255), font=font_medium)
                     else:
-                        # -----------------------------------------------------------------
-                        # PERBAIKAN: SMART HOOK BESAR, JELAS & RAPI DI SHORTS
-                        # -
+                        if t <= 4.0 and auto_hook_text:
+                            box_x1, box_y1, box_x2, box_y2 = 40, 130, target_w - 40, 270
+                            draw.rounded_rectangle([box_x1, box_y1, box_x2, box_y2], radius=15, fill=(0, 0, 0, 210))
+                            draw.text((box_x1 + 30, box_y1 + 40
